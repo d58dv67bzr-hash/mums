@@ -3,6 +3,8 @@ export interface Restaurant {
   name: string
   address: string
   area: 'Jönköping' | 'Huskvarna'
+  website?: string
+  providerIds?: string[]
 }
 
 export interface MenuSource {
@@ -10,6 +12,16 @@ export interface MenuSource {
   restaurantId: string
   url: string
   kind: 'example' | 'website'
+  providerId?: string
+}
+
+export interface DishReport {
+  providerId: string
+  name: string
+  url: string
+  checkedAt: string
+  cached: boolean
+  priceSek?: number
 }
 
 export interface Dish {
@@ -18,6 +30,8 @@ export interface Dish {
   description: string
   date: string
   priceSek?: number
+  priceConflict?: boolean
+  reports?: DishReport[]
 }
 
 export interface WeeklyMenu {

@@ -11,10 +11,12 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
 
 jobs:
   skanna:
+    if: github.event.repository.private == true
     runs-on: ubuntu-latest
     steps:
       - name: Kontrollera svensk sommar- eller vintertid
@@ -33,6 +35,19 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Läs tidigare privat skanning
+        if: steps.tid.outputs.kor == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if listing=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts" -X GET -f name=privat-menydata -F per_page=100); then
+            run_id=$(jq -r --arg branch "$GITHUB_REF_NAME" '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == $branch)] | max_by(.created_at) | .workflow_run.id // empty' <<< "$listing")
+            if [[ -n "$run_id" ]]; then
+              gh run download "$run_id" --name privat-menydata --dir .mums || echo 'Ingen tidigare privat menydata tillgänglig.'
+            fi
+          else
+            echo 'Kunde inte lista tidigare privat menydata.'
+          fi
       - name: Installera och skanna
         if: steps.tid.outputs.kor == 'true'
         run: |
@@ -40,10 +55,12 @@ jobs:
           sudo apt-get install -y poppler-utils
           npm ci
           npm run scan
-      - name: Spara menydata
+      - name: Spara menydata i det privata repot
         if: steps.tid.outputs.kor == 'true'
-        run: |
-          git add public/menydata.json
-          if git diff --cached --quiet; then exit 0; fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Uppdatera verifierade menydata'
-          git push origin "HEAD:$GITHUB_REF"
+        uses: actions/upload-artifact@v4
+        with:
+          name: privat-menydata
+          path: .mums/scan.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

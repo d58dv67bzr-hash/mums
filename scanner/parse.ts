@@ -129,6 +129,7 @@ export function parseMenu(text: string, sourceId: string, week: string): WeeklyM
   return {
     sourceId, week, dishes: [...candidates.values()].map(({ dish, seenPrices, uncertainPrice }) => {
       const applicable = new Set([...globalPrices, ...(dailyPrices.get(dish.date) ?? []), ...seenPrices])
+      if (applicable.size > 1) return { ...dish, priceConflict: true }
       return !uncertainPrice && applicable.size === 1 ? { ...dish, priceSek: [...applicable][0] } : dish
     }),
   }
