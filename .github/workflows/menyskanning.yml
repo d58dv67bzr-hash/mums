@@ -1,0 +1,49 @@
+name: Menyskanning
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5,8 * * 1-5'
+    - cron: '0 6,9 * * 1-5'
+
+concurrency:
+  group: mums-menyskanning
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  skanna:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kontrollera svensk sommar- eller vintertid
+        id: tid
+        env:
+          SCHEMA: ${{ github.event.schedule }}
+        run: |
+          zone=$(TZ=Europe/Stockholm date +%z)
+          if [[ -z "$SCHEMA" || ( "$zone" == +0200 && "$SCHEMA" == '0 5,8 * * 1-5' ) || ( "$zone" == +0100 && "$SCHEMA" == '0 6,9 * * 1-5' ) ]]; then
+            echo 'kor=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.tid.outputs.kor == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.tid.outputs.kor == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - name: Installera och skanna
+        if: steps.tid.outputs.kor == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          npm ci
+          npm run scan
+      - name: Spara menydata
+        if: steps.tid.outputs.kor == 'true'
+        run: |
+          git add public/menydata.json
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Uppdatera verifierade menydata'
+          git push origin "HEAD:$GITHUB_REF"
