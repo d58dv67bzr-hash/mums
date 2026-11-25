@@ -118,6 +118,7 @@ function structuredAdapter(layout: Layout): RestaurantAdapter {
         ? individual
         : { amounts: [...common.amounts, ...daily.amounts], uncertain: common.uncertain || daily.uncertain }
       const amounts = new Set(price.amounts)
+      if (amounts.size > 1) return { ...dish, priceConflict: true }
       return !price.uncertain && amounts.size === 1 ? { ...dish, priceSek: price.amounts[0] } : dish
     }) }
   }

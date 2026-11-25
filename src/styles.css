@@ -114,3 +114,11 @@ dialog input { width: 100%; color: inherit; background: white; padding: 10px; bo
   .restaurant { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .switch span { transition: none; } }
+
+.source-settings { margin-top: 8px; }
+.source-details { border: 1px solid var(--line); background: var(--paper); border-radius: 13px; padding: 12px; }
+.source-details summary { color: var(--green); cursor: pointer; font-size: 14px; font-weight: 700; }
+.source-details ul { list-style: none; padding: 0; margin: 10px 0 0; }
+.source-details li { display: flex; gap: 12px; justify-content: space-between; border-top: 1px solid var(--line); padding: 7px 0; font-size: 13px; }
+.source-details li span:last-child { color: var(--muted); text-align: right; }
+.menu-links { display: flex; flex-wrap: wrap; gap: 8px; }

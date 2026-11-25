@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "scan": "tsx scanner/run.ts"
+    "scan": "tsx scanner/run.ts",
+    "diagnose": "tsx scanner/diagnose.ts"
   },
   "repository": {
     "type": "git",

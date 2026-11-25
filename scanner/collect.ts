@@ -10,7 +10,7 @@ export const agent = 'MumsMenuScanner/1.0'
 const maximumBytes = 6 * 1024 * 1024
 const cacheHours = 48
 
-class FetchFailure extends Error {
+export class FetchFailure extends Error {
   constructor(message: string, readonly status: SourceStatus, readonly retryable = false) {
     super(message)
   }
@@ -53,8 +53,39 @@ async function readResponse(url: URL, fetcher: typeof fetch, accepts: string) {
   } finally {
     reader.releaseLock()
   }
-  return { content: Buffer.concat(parts), contentType: response.headers.get('content-type') ?? '' }
+  return { status: response.status, content: Buffer.concat(parts), contentType: response.headers.get('content-type') ?? '' }
 }
+
+export function createFetchSession(fetcher = fetch, pauseMs = 0) {
+  const replies = new Map<string, ReturnType<typeof readResponse>>()
+  let queue: Promise<unknown> = Promise.resolve()
+  let startAfter = 0
+  let bytes = 0
+
+  return function request(url: URL, accepts: string) {
+    const key = url.href + '|' + accepts
+    const previous = replies.get(key)
+    if (previous) return previous
+    const result = queue.then(async () => {
+      const wait = startAfter - Date.now()
+      if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait))
+      startAfter = Date.now() + pauseMs
+      const response = await readResponse(url, fetcher, accepts)
+      bytes += response.content.length
+      if (bytes > 24 * 1024 * 1024) {
+        replies.clear()
+        bytes = 0
+      }
+      return response
+    })
+    queue = result.catch(() => undefined)
+    if (replies.size >= 80) replies.delete(replies.keys().next().value!)
+    replies.set(key, result)
+    return result
+  }
+}
+
+export type FetchSession = ReturnType<typeof createFetchSession>
 
 export function pdfText(content: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -77,10 +108,10 @@ export function pdfText(content: Buffer): Promise<string> {
   })
 }
 
-async function verifyRobots(url: URL, fetcher: typeof fetch) {
+export async function verifyRobots(url: URL, request: FetchSession) {
   const robotsUrl = new URL('/robots.txt', url)
   try {
-    const { content, contentType } = await readResponse(robotsUrl, fetcher, 'text/plain')
+    const { content, contentType } = await request(robotsUrl, 'text/plain')
     const text = content.toString('utf8')
     if (/^\s*</u.test(text) || /text\/html/iu.test(contentType)) {
       throw new FetchFailure('robots.txt innehåller HTML.', 'manual-review')
@@ -95,7 +126,7 @@ async function verifyRobots(url: URL, fetcher: typeof fetch) {
     }
   } catch (error) {
     if (error instanceof FetchFailure && error.status === 'blocked') throw error
-    throw new FetchFailure('robots.txt behöver granskas.', 'manual-review')
+    throw new FetchFailure('robots.txt behöver granskas.' + (error instanceof FetchFailure ? ' ' + error.message : ''), 'manual-review')
   }
 }
 
@@ -110,7 +141,7 @@ function reusable(previous: ScanData, id: string, url: URL, week: string, now: D
 
 export async function collectMenus(
   registry: readonly RegistryEntry[],
-  { fetcher = fetch, previous = emptyScan, week = monday(currentDate()), now = new Date() } = {},
+  { fetcher = fetch, request = createFetchSession(fetcher), previous = emptyScan, week = monday(currentDate()), now = new Date() } = {},
 ): Promise<ScanData> {
   const data: ScanData = { attemptedAt: now.toISOString(), targetWeek: week, results: [], menus: [], sources: [], restaurants: [] }
   for (const entry of registry) {
@@ -122,9 +153,9 @@ export async function collectMenus(
       url = reviewedUrl(entry)
       if (url) {
         if (entry.format === 'html' && !entry.selector) throw new FetchFailure('Menyregionen behöver granskas.', 'manual-review')
-        await verifyRobots(url, fetcher)
+        await verifyRobots(url, request)
         const pdf = entry.format === 'pdf'
-        const { content, contentType } = await readResponse(url, fetcher, pdf ? 'application/pdf' : 'text/html')
+        const { content, contentType } = await request(url, pdf ? 'application/pdf' : 'text/html')
         if (pdf ? !content.subarray(0, 5).equals(Buffer.from('%PDF-')) : !contentType.toLowerCase().includes('text/html')) {
           throw new MenuFormatError('Menyn bytte format eller svarade med oväntat innehåll.')
         }
@@ -148,7 +179,7 @@ export async function collectMenus(
     if (menu && url && entry.address && entry.area) {
       data.menus.push(menu)
       data.restaurants.push({ id: entry.id, name: entry.name, address: entry.address, area: entry.area })
-      data.sources.push({ id: entry.id, restaurantId: entry.id, url: url.href, kind: 'website' })
+      data.sources.push({ id: entry.id, restaurantId: entry.id, url: url.href, kind: 'website', providerId: 'restaurang:' + entry.id })
     }
   }
   return data

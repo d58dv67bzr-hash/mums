@@ -1,85 +1,148 @@
 {
-  "attemptedAt": "2026-11-25T08:47:32.459Z",
-  "targetWeek": "2026-11-23",
-  "results": [
-    {
-      "restaurantId": "cezar-hv71",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "dragon",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "guvernoren",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "spishallen",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "huskvarna-stadshotell",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "ester",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "frimans",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "rc-grill",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "restaurang-z",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "carotte-werket",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "cafe-pingst",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "hemma",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "juna",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "kaffeteket",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "la-vue",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "hvildmarken",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "hasse-pa-sjokanten",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "aqua",
-      "status": "manual-review"
-    },
-    {
-      "restaurantId": "raggmunken",
-      "status": "manual-review"
-    }
-  ],
+  "attemptedAt": null,
+  "targetWeek": null,
+  "results": [],
   "menus": [],
+  "restaurants": [],
   "sources": [],
-  "restaurants": []
+  "providers": [
+    {
+      "id": "jkpg-lunch",
+      "name": "JKPG Lunch",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "lunchsidan",
+      "name": "Lunchsidan",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "tuggkoll",
+      "name": "Tuggkoll",
+      "status": "blocked",
+      "active": false
+    },
+    {
+      "id": "lokallunch",
+      "name": "Lokallunch",
+      "status": "blocked",
+      "active": false
+    },
+    {
+      "id": "restaurang:cezar-hv71",
+      "name": "Cezar (HV71)",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:dragon",
+      "name": "Restaurang Dragon",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:guvernoren",
+      "name": "Guvernören",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:spishallen",
+      "name": "Spishällen",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:huskvarna-stadshotell",
+      "name": "Huskvarna Stadshotell",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:ester",
+      "name": "Ester Kök & Bar",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:frimans",
+      "name": "Frimans Café & Bistro",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:rc-grill",
+      "name": "RC Grill",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:restaurang-z",
+      "name": "Restaurang Z",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:carotte-werket",
+      "name": "Carotte x Werket",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:cafe-pingst",
+      "name": "Café Pingst",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:hemma",
+      "name": "Hemma",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:juna",
+      "name": "Juna",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:kaffeteket",
+      "name": "Kaffeteket",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:la-vue",
+      "name": "La Vue",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:hvildmarken",
+      "name": "Hvildmarken",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:hasse-pa-sjokanten",
+      "name": "Hasse på Sjökanten",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:aqua",
+      "name": "Aqua Dinner & Drinks",
+      "status": "manual-review",
+      "active": false
+    },
+    {
+      "id": "restaurang:raggmunken",
+      "name": "Restaurang Raggmunken",
+      "status": "manual-review",
+      "active": false
+    }
+  ]
 }

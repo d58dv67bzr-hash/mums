@@ -40,17 +40,15 @@ Molnproxyn svarade `403` på CONNECT för följande exakta adresser. Ingen HTTP-
 
 Varje filial registreras med eget ID, verifierat namn, adress, område, direktlänk till originalmenyn, meny- och prisformat, status och datum för senaste verifiering. Spara dokumentation om webbplatsens villkor och robots.txt i `review` före godkännande. Källor med oklar åtkomst ska ligga kvar för manuell granskning. Lokallunch och Tuggkoll är spärrade. Eventuellt klartecken från källägaren behöver granskas innan någon sådan spärr ändras.
 
-## Skanna menyer
+## Lunchportaler och privat menydata
 
-`npm run scan` kör serverprocessen och skriver `public/menydata.json`. Normalläget läser filen och skiljer uteblivna matchningar från saknade menydata eller misslyckad skanning. Uppdateringsknappen hämtar den senaste tillgängliga versionen. En manuell serverskanning startas från kommandoraden eller via **Run workflow** i GitHub Actions.
+Lunchportaler är primära källor. Restaurangernas egna menyer kompletterar täckningen. [Portalregistret](data/lunch-portals.json) håller ordning på de fyra kandidaterna och deras åtkomststatus. [Teknisk dokumentation](docs/lunchportaler.md) beskriver verifieringsläget, blockerade adresser och hur nästa källa ansluts.
 
-- HTML kräver en kontrollerad selektor som avgränsar exakt en menyregion. Aqua och Huskvarna Stadshotell har särskilda strukturprofiler i `scanner/adapters/restaurants.ts`. PDF kräver en direktlänk till en textbaserad PDF. Bildmenyer, Javascript-renderade menyer, omdirigeringar och svårtolkad layout behöver särskild källanpassning.
-- Parsern stöder veckorubriker som `Vecka 48 2026`, ISO-datum och svenska veckodagar, samt datum som `25/11` när året har förankrats. Rätterna behöver ligga på egna rader under dagsrubriker. Utan daterade belägg för målveckan avvisas menyn.
-- Priser med valuta räknas endast från menyn. `Lunchpris` före dagsrubriker gäller menyn, under en dagsrubrik gäller det dagen. Motstridiga priser lämnas tomma och visas som **Pris saknas**.
-- Skannern läser robots.txt vid varje körning och hoppar över källan vid osäker åtkomst eller ett crawl-delay som kräver anpassning. En tidigare hämtning kan användas i högst 48 timmar inom samma vecka vid tillfälliga fel i själva menyhämtningen. Föregående kontrolltid bevaras och appen markerar varje återanvänd träff.
-- Matchningen använder normalisering, svenska böjningsformer och konfigurerbara synonymgrupper i `src/matching.ts`. Veganska och vegetariska köttbullar kräver ett uttryckligt favoritval eller synonymstöd.
+`npm run scan` kör serverprocessen och sparar resultat och reservunderlag i den git-ignorerade filen `.mums/scan.json`. Kör lokalt med `MUMS_LOCAL_DATA=1 npm run dev -- --host 127.0.0.1` för att läsa det privata resultatet i appen. Utan den inställningen visar normalläget endast tomma menydata och källstatus. Lägg aldrig menyfiler i `public/`. Demoläget nås via `/?demo=1` och har egna lokala favoriter.
 
-GitHub Actions är förberett för vardagar kl. 07.00 och 10.00 svensk tid. Två UTC-scheman täcker svensk normaltid och sommartid, och körningen väljer rätt schema med `Europe/Stockholm`. Schemat fungerar när arbetsflödet ligger på standardbranchen. Manuella körningar förutsätter att GitHub känner till arbetsflödet på standardbranchen och att vald branch tillåter att arbetsflödet sparar JSON. Ingen publicering sker i arbetsflödet.
+GitHub Actions behåller vardagsskanning kl. 07.00 och 10.00 svensk tid med sommar- och vintertid, plus manuell körning. Menyjobbet körs först när repot är privat. Resultaten sparas som en tidsbegränsad privat artefakt. Arbetsflödet gör ingen commit och publicerar ingen app. Efter merge till standardbranchen kan **Källdiagnostik → Run workflow** köras från fliken **Actions**. Det arbetsflödet skriver endast diagnostiska metadata.
+
+Inför eventuell Vercel-publicering behöver både appen och meny-API:t åtkomstskydd. [Privat lagring, Actions och framtida åtkomstskydd](docs/lunchportaler.md#privat-lagring-och-publicering)
 
 ## Skärmbilder från grundversionen
 

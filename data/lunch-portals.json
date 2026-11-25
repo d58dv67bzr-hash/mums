@@ -1,0 +1,6 @@
+[
+  { "id": "jkpg-lunch", "name": "JKPG Lunch", "url": "https://www.jkpglunch.se/", "status": "manual-review", "reviewAttempted": "2026-11-25", "review": null },
+  { "id": "lunchsidan", "name": "Lunchsidan", "url": "https://www.lunchsidan.se/", "status": "manual-review", "reviewAttempted": "2026-11-25", "review": null },
+  { "id": "tuggkoll", "name": "Tuggkoll", "url": "https://tuggkoll.se/jonkoping", "status": "blocked", "reviewAttempted": "2026-11-25", "review": null, "reason": "Åtkomstbegränsningen för automatiserad insamling behöver klarläggas med källägaren." },
+  { "id": "lokallunch", "name": "Lokallunch", "url": "https://lokallunch.se/jonkoping/", "status": "blocked", "reviewAttempted": "2026-11-25", "review": null, "reason": "Uttryckligt förbud mot automatiserad hämtning enligt uppdragsunderlaget." }
+]
