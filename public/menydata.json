@@ -1,0 +1,85 @@
+{
+  "attemptedAt": "2026-11-25T08:36:36.262Z",
+  "targetWeek": "2026-11-23",
+  "results": [
+    {
+      "restaurantId": "cezar-hv71",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "dragon",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "guvernoren",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "spishallen",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "huskvarna-stadshotell",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "ester",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "frimans",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "rc-grill",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "restaurang-z",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "carotte-werket",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "cafe-pingst",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "hemma",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "juna",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "kaffeteket",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "la-vue",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "hvildmarken",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "hasse-pa-sjokanten",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "aqua",
+      "status": "manual-review"
+    },
+    {
+      "restaurantId": "raggmunken",
+      "status": "manual-review"
+    }
+  ],
+  "menus": [],
+  "sources": [],
+  "restaurants": []
+}

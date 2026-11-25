@@ -7,6 +7,12 @@ import {
 import { addDays, currentDate, dateLabel, matchMenus, monday, priceLabel, weekNumber, type Favorite, type Match } from './domain'
 import { defaultFavorites, exampleCollector, exampleMenus, restaurants, sources } from './examples'
 import { readLocal, writeLocal } from './storage'
+import { createMenuMatcher } from './matching'
+import { emptyScan, type ScanData } from './scan-data'
+
+const menuMatcher = createMenuMatcher()
+const demo = new URLSearchParams(location.search).get('demo') === '1'
+const scanTime = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' })
 
 const tabs = [
   { id: 'start', label: 'Start', icon: House },
@@ -31,11 +37,12 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   </dialog>
 }
 
-function Badge() {
-  return <span className="badge"><CircleHelp size={14} /> Exempeldata</span>
+function Badge({ cached = false }: { cached?: boolean }) {
+  if (!demo && !cached) return null
+  return <span className="badge"><CircleHelp size={14} /> {demo ? 'Exempeldata' : 'Tidigare hämtad'}</span>
 }
 
-function DishRow({ match, showDay, onClick }: { match: Match; showDay?: boolean; onClick: () => void }) {
+function DishRow({ match, showDay, cached, onClick }: { match: Match; showDay?: boolean; cached?: boolean; onClick: () => void }) {
   const { dish, restaurant } = match
   return <button className="dish-row" onClick={onClick}>
     <span className="dish-icon"><Utensils size={20} /></span>
@@ -43,6 +50,7 @@ function DishRow({ match, showDay, onClick }: { match: Match; showDay?: boolean;
       {showDay && <span className="day-tag">{dateLabel(dish.date, { weekday: 'long' })}</span>}
       <strong>{dish.name}</strong>
       <span className="restaurant">{restaurant.name} · {restaurant.area}</span>
+      {cached && <Badge cached />}
     </span>
     <span className={'price' + (dish.priceSek === undefined ? ' missing' : '')}>{priceLabel(dish.priceSek)}</span>
     <ChevronRight className="dish-arrow" size={17} />
@@ -51,7 +59,7 @@ function DishRow({ match, showDay, onClick }: { match: Match; showDay?: boolean;
 
 export function App() {
   const [tab, setTab] = useState(activeTab)
-  const [favorites, setFavorites] = useState(() => readLocal('favorites', defaultFavorites))
+  const [favorites, setFavorites] = useState(() => readLocal(demo ? 'demoFavorites' : 'favorites', defaultFavorites))
   const [weekOffset, setWeekOffset] = useState(0)
   const [selection, setSelection] = useState<Match>()
   const [notifications, setNotifications] = useState(false)
@@ -59,13 +67,53 @@ export function App() {
   const [name, setName] = useState('')
   const [formError, setFormError] = useState('')
   const [storageError, setStorageError] = useState(false)
-  const [lastScan, setLastScan] = useState(() => readLocal<string | null>('lastScan', null))
+  const [lastScan, setLastScan] = useState(() => readLocal<string | null>('demoLastScan', null))
   const [scanResult, setScanResult] = useState('')
   const [scanning, setScanning] = useState(false)
+  const [scanData, setScanData] = useState(emptyScan)
+  const [dataState, setDataState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [scanned, setScanned] = useState<Awaited<ReturnType<typeof exampleCollector.collect>>>([])
   const thisWeek = monday(currentDate())
   const week = addDays(thisWeek, weekOffset * 7)
-  const matchesFor = (date: string) => matchMenus(scanned.some(menu => menu.week === date) ? scanned : exampleMenus(date), sources, restaurants, favorites)
+  const validMenus = scanData.menus.filter(({ menu, checkedAt }) => {
+    if (menu.week !== thisWeek || scanData.targetWeek !== thisWeek) return false
+    if (!isCached(menu.sourceId)) return true
+    const age = Date.now() - Date.parse(checkedAt)
+    return age >= 0 && age <= 48 * 3600000
+  })
+  const matchesFor = (date: string) => demo
+    ? matchMenus(scanned.some(menu => menu.week === date) ? scanned : exampleMenus(date), sources, restaurants, favorites, menuMatcher)
+    : matchMenus(validMenus.map(item => item.menu).filter(menu => menu.week === date), scanData.sources, scanData.restaurants, favorites, menuMatcher)
+  const emptyText = demo ? 'Inga träffar i veckans exempelmenyer.'
+    : dataState === 'loading' ? 'Hämtar menydata…'
+    : dataState === 'failed' ? 'Menydata kunde inte hämtas.'
+    : 'Inga verifierade träffar för veckan.'
+
+  function isCached(sourceId: string) {
+    return scanData.results.some(result => result.restaurantId === sourceId && result.status === 'cached')
+  }
+
+  async function loadScan(signal?: AbortSignal) {
+    setDataState('loading')
+    try {
+      const response = await fetch('./menydata.json', { cache: 'no-cache', signal })
+      if (!response.ok) throw new Error()
+      const data: ScanData = await response.json()
+      setScanData(data)
+      setDataState('ready')
+    } catch {
+      if (signal?.aborted) return
+      setScanData(emptyScan)
+      setDataState('failed')
+    }
+  }
+
+  useEffect(() => {
+    if (demo) return
+    const controller = new AbortController()
+    void loadScan(controller.signal)
+    return () => controller.abort()
+  }, [])
   const matches = matchesFor(thisWeek)
   const weekMatches = week === thisWeek ? matches : matchesFor(week)
   const days = [...new Set(weekMatches.map(match => match.dish.date))]
@@ -81,7 +129,7 @@ export function App() {
 
   function updateFavorites(next: Favorite[]) {
     setFavorites(next)
-    setStorageError(!writeLocal('favorites', next))
+    setStorageError(!writeLocal(demo ? 'demoFavorites' : 'favorites', next))
   }
 
   function openEditor(favorite: Favorite | 'new') {
@@ -114,7 +162,7 @@ export function App() {
       setScanned(await exampleCollector.collect(thisWeek))
       const timestamp = new Date().toISOString()
       setLastScan(timestamp)
-      const saved = writeLocal('lastScan', timestamp)
+      const saved = writeLocal('demoLastScan', timestamp)
       setScanResult(saved ? 'Exempelmenyerna har skannats.' : 'Exempelmenyerna har skannats. Skanningstiden kunde inte sparas.')
     } catch {
       setScanResult('Skanningen misslyckades. Försök igen.')
@@ -136,7 +184,7 @@ export function App() {
             <p className="eyebrow"><MapPin size={15} /> Jönköping &amp; Huskvarna</p>
             <h1>Veckans lunchträffar</h1>
             <p className="hero-week">Vecka {weekNumber(thisWeek)}</p>
-            <span className="hero-count"><span>{matches.length}</span> {matches.length === 1 ? 'träff' : 'träffar'} i exempelmenyerna</span>
+            <span className="hero-count"><span>{matches.length}</span> {matches.length === 1 ? 'träff' : 'träffar'} {demo ? 'i exempelmenyerna' : 'denna vecka'}</span>
           </div>
           <div className="hero-art" aria-hidden="true">
             <svg viewBox="0 0 240 190" fill="none">
@@ -149,8 +197,8 @@ export function App() {
         </section>
         <section className="results">
           <div className="section-heading"><h2>Aktuella träffar</h2><Badge /></div>
-          <div className="cards">{matches.map(match => <DishRow key={match.dish.id} match={match} showDay onClick={() => setSelection(match)} />)}</div>
-          {matches.length === 0 && <p className="empty">Inga träffar i veckans exempelmenyer.</p>}
+          <div className="cards">{matches.map(match => <DishRow key={match.dish.id} match={match} showDay cached={isCached(match.source.id)} onClick={() => setSelection(match)} />)}</div>
+          {matches.length === 0 && <p className="empty">{emptyText}</p>}
         </section>
         <a className="week-link" href="#vecka" onClick={() => setWeekOffset(0)}>Visa hela veckan <ArrowRight size={17} /></a>
       </>}
@@ -166,9 +214,9 @@ export function App() {
         {days.map(day => <section className="day-group" key={day}>
           <h2>{dateLabel(day, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
           <div className="cards">{weekMatches.filter(match => match.dish.date === day).map(match =>
-            <DishRow key={match.dish.id} match={match} onClick={() => setSelection(match)} />)}</div>
+            <DishRow key={match.dish.id} match={match} cached={isCached(match.source.id)} onClick={() => setSelection(match)} />)}</div>
         </section>)}
-        {days.length === 0 && <p className="empty">Inga träffar i veckans exempelmenyer.</p>}
+        {days.length === 0 && <p className="empty">{emptyText}</p>}
       </>}
 
       {tab === 'favoriter' && <>
@@ -190,13 +238,20 @@ export function App() {
         <div className="settings-list">
           <div className="setting-row"><span className="dish-icon"><MapPin size={19} /></span><div><strong>Bevakningsområde</strong><p>Jönköping och Huskvarna</p></div></div>
           <div className="setting-row"><span className="dish-icon"><Bell size={19} /></span><div><strong>Pushnotiser</strong><p>Inte tillgängligt ännu</p></div><button className="switch" role="switch" aria-label="Pushnotiser" aria-checked={false} disabled><span /></button></div>
-          <div className="setting-row"><span className="dish-icon"><Clock3 size={19} /></span><div><strong>Senaste menyskanning</strong><p>{lastScan ? new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' }).format(new Date(lastScan)) : 'Ingen skanning ännu'}</p></div></div>
-          <div className="setting-row"><span className="dish-icon"><Store size={19} /></span><div><strong>Bevakade restauranger</strong><p>{restaurants.length} i exempeldata</p></div></div>
+          <div className="setting-row"><span className="dish-icon"><Clock3 size={19} /></span><div><strong>Senaste menyskanning</strong><p>{(demo ? lastScan : scanData.attemptedAt) ? scanTime.format(new Date((demo ? lastScan : scanData.attemptedAt)!)) : 'Ingen skanning tillgänglig'}</p></div></div>
+          <div className="setting-row"><span className="dish-icon"><Store size={19} /></span><div><strong>Bevakade restauranger</strong><p>{demo ? restaurants.length + ' i exempeldata' : scanData.results.filter(item => item.status === 'live' && validMenus.some(({ menu }) => menu.sourceId === item.restaurantId)).length + ' framgångsrikt hämtade'}</p></div></div>
         </div>
         <section className="scan-card"><div className="section-heading"><h2>Menyskanning</h2><Badge /></div>
-          <p>Automatisk insamling från restauranger är inte tillgänglig ännu.</p>
-          <button className="primary" disabled={scanning} onClick={() => void scan()}><RefreshCw size={17} /> Skanna exempelmenyer</button>
-          <p className="scan-status" role="status">{scanResult}</p>
+          {demo ? <>
+            <button className="primary" disabled={scanning} onClick={() => void scan()}><RefreshCw size={17} /> Skanna exempelmenyer</button>
+            <p className="scan-status" role="status">{scanResult}</p>
+          </> : <>
+            <p role="status">{dataState === 'loading' ? 'Hämtar skanningsstatus…'
+              : dataState === 'failed' ? 'Skanningsstatus kunde inte hämtas.'
+              : !scanData.attemptedAt ? 'Ingen skanning tillgänglig.'
+              : `${scanData.results.filter(item => item.status === 'manual-review').length} väntar på granskning · ${scanData.results.filter(item => item.status === 'blocked' || item.status === 'failed').length} blockerade eller misslyckade · ${validMenus.filter(({ menu }) => isCached(menu.sourceId)).length} återanvända`}</p>
+            <button className="primary" disabled={dataState === 'loading'} onClick={() => void loadScan()}><RefreshCw size={17} /> Uppdatera menydata</button>
+          </>}
         </section>
       </>}
     </main>
@@ -206,11 +261,11 @@ export function App() {
     )}</div></nav>
 
     {selection && <Modal title={selection.dish.name} onClose={() => setSelection(undefined)}>
-      <Badge />
+      <Badge cached={isCached(selection.source.id)} />
       <div className="detail-meta"><span>{dateLabel(selection.dish.date, { weekday: 'long', day: 'numeric', month: 'long' })}</span><strong>{priceLabel(selection.dish.priceSek)}</strong></div>
       <p>{selection.dish.description}</p>
       <div className="detail-address"><MapPin size={18} /><div><strong>{selection.restaurant.name}</strong><p>{selection.restaurant.address}</p></div></div>
-      <a className="primary" href={selection.source.url} target="_blank" rel="noreferrer">Öppna exempelmenyn <ExternalLink size={16} /></a>
+      <a className="primary" href={selection.source.url} target="_blank" rel="noreferrer">{demo ? 'Öppna exempelmenyn' : 'Öppna originalmenyn'} <ExternalLink size={16} /></a>
     </Modal>}
     {notifications && <Modal title="Notiser" onClose={() => setNotifications(false)}><p>Pushnotiser är inte tillgängliga ännu.</p></Modal>}
     {editing && <Modal title={editing === 'new' ? 'Lägg till favorit' : 'Redigera favorit'} onClose={() => setEditing(undefined)}>

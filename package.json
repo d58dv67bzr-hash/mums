@@ -6,7 +6,8 @@
     "test": "tsx --test tests/*.test.ts",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "scan": "tsx scanner/run.ts"
   },
   "repository": {
     "type": "git",
@@ -27,9 +28,12 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.10",
     "@types/react": "^19.3.1",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "cheerio": "^1.2.0",
+    "robots-parser": "^3.1.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"
