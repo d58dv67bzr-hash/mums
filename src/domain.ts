@@ -98,8 +98,10 @@ export function addDays(date: string, days: number) {
   return value.toISOString().slice(0, 10)
 }
 
-export function currentDate() {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' }).format(new Date())
+const stockholmDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' })
+
+export function currentDate(date = new Date()) {
+  return stockholmDate.format(date)
 }
 
 export function monday(date: string) {

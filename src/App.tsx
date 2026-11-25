@@ -4,10 +4,12 @@ import {
   ExternalLink, Heart, House, MapPin, Pencil, Plus, RefreshCw, Settings,
   Store, Trash2, Utensils, X,
 } from 'lucide-react'
-import { addDays, currentDate, dateLabel, matchMenus, monday, priceLabel, weekNumber, type Favorite, type Match } from './domain'
+import { addDays, dateLabel, matchMenus, monday, priceLabel, weekNumber, type Favorite, type Match } from './domain'
 import { defaultFavorites, exampleCollector, exampleMenus, restaurants, sources } from './examples'
 import { readLocal, writeLocal } from './storage'
 import { createMenuMatcher } from './matching'
+import { todayEmptyMessage, todayMatches } from './today'
+import { useStockholmDate } from './useStockholmDate'
 import { emptyMenuMessage, emptyScan, menusForWeek, type ScanData } from './scan-data'
 
 const menuMatcher = createMenuMatcher()
@@ -19,7 +21,7 @@ const sourceStatus = {
 const scanTime = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' })
 
 const tabs = [
-  { id: 'start', label: 'Start', icon: House },
+  { id: 'idag', label: 'Idag', icon: House },
   { id: 'vecka', label: 'Vecka', icon: CalendarDays },
   { id: 'favoriter', label: 'Favoriter', icon: Heart },
   { id: 'installningar', label: 'Inställningar', icon: Settings },
@@ -27,7 +29,7 @@ const tabs = [
 type Tab = typeof tabs[number]['id']
 
 function activeTab(): Tab {
-  return tabs.find(tab => '#' + tab.id === location.hash)?.id ?? 'start'
+  return tabs.find(tab => '#' + tab.id === location.hash)?.id ?? 'idag'
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -46,12 +48,11 @@ function Badge({ cached = false }: { cached?: boolean }) {
   return <span className="badge"><CircleHelp size={14} /> {demo ? 'Exempeldata' : 'Tidigare hämtad'}</span>
 }
 
-function DishRow({ match, showDay, cached, onClick }: { match: Match; showDay?: boolean; cached?: boolean; onClick: () => void }) {
+function DishRow({ match, cached, onClick }: { match: Match; cached?: boolean; onClick: () => void }) {
   const { dish, restaurant } = match
   return <button className="dish-row" onClick={onClick}>
     <span className="dish-icon"><Utensils size={20} /></span>
     <span className="dish-copy">
-      {showDay && <span className="day-tag">{dateLabel(dish.date, { weekday: 'long' })}</span>}
       <strong>{dish.name}</strong>
       <span className="restaurant">{restaurant.name} · {restaurant.area}</span>
       {cached && <Badge cached />}
@@ -77,7 +78,8 @@ export function App() {
   const [scanData, setScanData] = useState(emptyScan)
   const [dataState, setDataState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [scanned, setScanned] = useState<Awaited<ReturnType<typeof exampleCollector.collect>>>([])
-  const thisWeek = monday(currentDate())
+  const today = useStockholmDate()
+  const thisWeek = monday(today)
   const week = addDays(thisWeek, weekOffset * 7)
   const validMenus = menusForWeek(scanData, thisWeek)
   const matchesFor = (date: string) => demo
@@ -119,14 +121,22 @@ export function App() {
     const controller = new AbortController()
     void loadScan(controller.signal)
     return () => controller.abort()
-  }, [])
+  }, [today])
   const matches = matchesFor(thisWeek)
+  const futureWeek = scanData.targetWeek
+  const futureMatches = demo ? matchesFor(addDays(thisWeek, 7))
+    : futureWeek && futureWeek > thisWeek
+      ? matchMenus(menusForWeek(scanData, futureWeek).map(item => item.menu), scanData.sources, scanData.restaurants, favorites, menuMatcher)
+      : []
+  const { current, next, nextDate } = todayMatches([...matches, ...futureMatches], today)
+  const hasMenus = demo || validMenus.length > 0
   const weekMatches = week === thisWeek ? matches : matchesFor(week)
   const days = [...new Set(weekMatches.map(match => match.dish.date))]
 
   useEffect(() => {
     function handleNavigation() {
       setTab(activeTab())
+      setSelection(undefined)
       window.scrollTo(0, 0)
     }
     window.addEventListener('hashchange', handleNavigation)
@@ -179,18 +189,17 @@ export function App() {
 
   return <>
     <header className="topbar"><div className="top-inner">
-      <a className="brand" href="#start" aria-label="Mums, start"><img src="/mark.svg" alt="" /><span>Mums<span className="brand-dot">.</span></span></a>
+      <a className="brand" href="#idag" aria-label="Mums, idag"><img src="/mark.svg" alt="" /><span>Mums<span className="brand-dot">.</span></span></a>
       <button className="icon-button bell" aria-label="Notiser" onClick={() => setNotifications(true)}><Bell size={21} /></button>
     </div></header>
 
     <main className="shell" id="main">
-      {tab === 'start' && <>
+      {tab === 'idag' && <>
         <section className="hero">
           <div className="hero-content">
-            <p className="eyebrow"><MapPin size={15} /> Jönköping &amp; Huskvarna</p>
-            <h1>Veckans lunchträffar</h1>
-            <p className="hero-week">Vecka {weekNumber(thisWeek)}</p>
-            <span className="hero-count"><span>{matches.length}</span> {matches.length === 1 ? 'träff' : 'träffar'} {demo ? 'i exempelmenyerna' : 'denna vecka'}</span>
+            <time className="eyebrow today-date" dateTime={today}>{dateLabel(today, { weekday: 'long', day: 'numeric', month: 'long' })}</time>
+            <h1>Dagens lunchträffar</h1>
+            {hasMenus && <span className="hero-count"><span>{current.length}</span> {current.length === 1 ? 'favoritträff' : 'favoritträffar'} idag</span>}
           </div>
           <div className="hero-art" aria-hidden="true">
             <svg viewBox="0 0 240 190" fill="none">
@@ -202,10 +211,15 @@ export function App() {
           </div>
         </section>
         <section className="results">
-          <div className="section-heading"><h2>Aktuella träffar</h2><Badge /></div>
-          <div className="cards">{matches.map(match => <DishRow key={match.dish.id} match={match} showDay cached={isCached(match.source.id, match)} onClick={() => setSelection(match)} />)}</div>
-          {matches.length === 0 && <p className="empty">{emptyText(thisWeek)}</p>}
+          <div className="section-heading"><h2>Idag</h2><Badge /></div>
+          <div className="cards">{current.map(match => <DishRow key={match.dish.id} match={match} cached={isCached(match.source.id, match)} onClick={() => setSelection(match)} />)}</div>
+          {current.length === 0 && <p className="empty">{todayEmptyMessage(hasMenus, emptyText(thisWeek))}</p>}
         </section>
+        {nextDate && <section className="upcoming">
+          <div className="section-heading"><h2>Nästa lunchträff</h2></div>
+          <time className="upcoming-date" dateTime={nextDate}>{dateLabel(nextDate, { weekday: 'long', day: 'numeric', month: 'long' })}</time>
+          <div className="cards">{next.map(match => <DishRow key={match.dish.id} match={match} cached={isCached(match.source.id, match)} onClick={() => setSelection(match)} />)}</div>
+        </section>}
         <a className="week-link" href="#vecka" onClick={() => setWeekOffset(0)}>Visa hela veckan <ArrowRight size={17} /></a>
       </>}
 
@@ -274,7 +288,7 @@ export function App() {
       <a href={'#' + id} key={id} aria-current={tab === id ? 'page' : undefined}><span><Icon size={22} /></span>{label}</a>
     )}</div></nav>
 
-    {selection && <Modal title={selection.dish.name} onClose={() => setSelection(undefined)}>
+    {selection && (tab !== 'idag' || selection.dish.date >= today) && <Modal title={selection.dish.name} onClose={() => setSelection(undefined)}>
       <Badge cached={isCached(selection.source.id, selection)} />
       <div className="detail-meta"><span>{dateLabel(selection.dish.date, { weekday: 'long', day: 'numeric', month: 'long' })}</span><strong>{priceLabel(selection.dish.priceSek)}</strong></div>
       <p>{selection.dish.description}</p>
