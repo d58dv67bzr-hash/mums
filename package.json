@@ -1,0 +1,37 @@
+{
+  "name": "mums",
+  "version": "1.0.0",
+  "description": "Mums – automatisk bevakning av favoritmaträtter på restauranger i Jönköping och Huskvarna.",
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d58dv67bzr-hash/mums.git"
+  },
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/d58dv67bzr-hash/mums/issues"
+  },
+  "homepage": "https://github.com/d58dv67bzr-hash/mums#readme",
+  "private": true,
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "^1.80.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.1",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
