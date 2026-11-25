@@ -32,7 +32,7 @@ function explicitDate(year: number, month: number, day: number) {
   return date
 }
 
-function datesIn(line: string, week: string) {
+export function datesIn(line: string, week: string) {
   const years = [...new Set([Number(week.slice(0, 4)), Number(addDays(week, 6).slice(0, 4))])]
   return [...line.matchAll(datePattern)].map(([, year, month, day, shortDay, shortMonth, shortYear]) => {
     const mm = Number(month ?? shortMonth)
@@ -45,7 +45,7 @@ function datesIn(line: string, week: string) {
   })
 }
 
-function pricesIn(text: string) {
+export function pricesIn(text: string) {
   return [...new Set([...text.matchAll(pricePattern)].map(([price]) => Number.parseFloat(price.replace(/\s/gu, '').replace(',', '.'))))]
 }
 

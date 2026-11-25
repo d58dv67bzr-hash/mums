@@ -62,7 +62,12 @@
     "status": "manual-review",
     "lastChecked": null,
     "reviewAttempted": "2026-11-25",
-    "review": null
+    "review": null,
+    "adapter": "huskvarna-stadshotell",
+    "leads": {
+      "historicalMenuUrl": "https://huskvarnastadshotell.se/restaurang/lunch-3-2-2-2-2-2-2-3/",
+      "verified": false
+    }
   },
   {
     "id": "ester",
@@ -230,8 +235,14 @@
     "priceFormat": null,
     "status": "manual-review",
     "lastChecked": null,
-    "reviewAttempted": null,
-    "review": null
+    "reviewAttempted": "2026-11-25",
+    "review": null,
+    "adapter": "aqua",
+    "leads": {
+      "website": "https://www.aquadinner.se/",
+      "reportedAddress": "Barnarpsgatan 24, 553 16 Jönköping",
+      "verified": false
+    }
   },
   {
     "id": "raggmunken",
