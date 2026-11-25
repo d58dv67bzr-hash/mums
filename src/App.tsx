@@ -123,12 +123,7 @@ export function App() {
     return () => controller.abort()
   }, [today])
   const matches = matchesFor(thisWeek)
-  const futureWeek = scanData.targetWeek
-  const futureMatches = demo ? matchesFor(addDays(thisWeek, 7))
-    : futureWeek && futureWeek > thisWeek
-      ? matchMenus(menusForWeek(scanData, futureWeek).map(item => item.menu), scanData.sources, scanData.restaurants, favorites, menuMatcher)
-      : []
-  const { current, next, nextDate } = todayMatches([...matches, ...futureMatches], today)
+  const current = todayMatches(matches, today)
   const hasMenus = demo || validMenus.length > 0
   const weekMatches = week === thisWeek ? matches : matchesFor(week)
   const days = [...new Set(weekMatches.map(match => match.dish.date))]
@@ -199,7 +194,10 @@ export function App() {
           <div className="hero-content">
             <time className="eyebrow today-date" dateTime={today}>{dateLabel(today, { weekday: 'long', day: 'numeric', month: 'long' })}</time>
             <h1>Dagens lunchträffar</h1>
-            {hasMenus && <span className="hero-count"><span>{current.length}</span> {current.length === 1 ? 'favoritträff' : 'favoritträffar'} idag</span>}
+            {hasMenus && <div className="hero-meta">
+              <span className="hero-count"><span>{current.length}</span> {current.length === 1 ? 'favoritträff' : 'favoritträffar'} idag</span>
+              <Badge />
+            </div>}
           </div>
           <div className="hero-art" aria-hidden="true">
             <svg viewBox="0 0 240 190" fill="none">
@@ -210,16 +208,10 @@ export function App() {
             </svg>
           </div>
         </section>
-        <section className="results">
-          <div className="section-heading"><h2>Idag</h2><Badge /></div>
+        <div className="results">
           <div className="cards">{current.map(match => <DishRow key={match.dish.id} match={match} cached={isCached(match.source.id, match)} onClick={() => setSelection(match)} />)}</div>
           {current.length === 0 && <p className="empty">{todayEmptyMessage(hasMenus, emptyText(thisWeek))}</p>}
-        </section>
-        {nextDate && <section className="upcoming">
-          <div className="section-heading"><h2>Nästa lunchträff</h2></div>
-          <time className="upcoming-date" dateTime={nextDate}>{dateLabel(nextDate, { weekday: 'long', day: 'numeric', month: 'long' })}</time>
-          <div className="cards">{next.map(match => <DishRow key={match.dish.id} match={match} cached={isCached(match.source.id, match)} onClick={() => setSelection(match)} />)}</div>
-        </section>}
+        </div>
         <a className="week-link" href="#vecka" onClick={() => setWeekOffset(0)}>Visa hela veckan <ArrowRight size={17} /></a>
       </>}
 

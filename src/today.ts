@@ -1,16 +1,7 @@
 import { currentDate, type Match } from './domain'
 
 export function todayMatches(matches: readonly Match[], today: string) {
-  const current = matches.filter(match => match.dish.date === today)
-  let nextDate: string | undefined
-  for (const { dish } of matches) {
-    if (dish.date > today && (!nextDate || dish.date < nextDate)) nextDate = dish.date
-  }
-  return {
-    current,
-    nextDate,
-    next: nextDate ? matches.filter(match => match.dish.date === nextDate) : [],
-  }
+  return matches.filter(match => match.dish.date === today)
 }
 
 export function todayEmptyMessage(hasMenus: boolean, weekMessage: string) {
