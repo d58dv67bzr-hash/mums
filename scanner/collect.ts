@@ -3,6 +3,7 @@ import robotsParser from 'robots-parser'
 import { monday, currentDate } from '../src/domain'
 import { emptyScan, type ScanData, type ScannedMenu, type SourceStatus } from '../src/scan-data'
 import { extractHtml, MenuFormatError, parseMenu } from './parse'
+import { restaurantAdapters } from './adapters/restaurants'
 import { reviewedUrl, type RegistryEntry } from './registry'
 
 export const agent = 'MumsMenuScanner/1.0'
@@ -127,8 +128,12 @@ export async function collectMenus(
         if (pdf ? !content.subarray(0, 5).equals(Buffer.from('%PDF-')) : !contentType.toLowerCase().includes('text/html')) {
           throw new MenuFormatError('Menyn bytte format eller svarade med oväntat innehåll.')
         }
-        const text = pdf ? await pdfText(content) : extractHtml(content.toString('utf8'), entry.selector!)
-        menu = { menu: parseMenu(text, entry.id, week), checkedAt: now.toISOString() }
+        const parsed = pdf
+          ? parseMenu(await pdfText(content), entry.id, week)
+          : entry.adapter
+            ? restaurantAdapters[entry.adapter](content.toString('utf8'), entry.selector!, entry.id, week)
+            : parseMenu(extractHtml(content.toString('utf8'), entry.selector!), entry.id, week)
+        menu = { menu: parsed, checkedAt: now.toISOString() }
         status = 'live'
       }
     } catch (error) {

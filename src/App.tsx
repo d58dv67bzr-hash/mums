@@ -8,7 +8,7 @@ import { addDays, currentDate, dateLabel, matchMenus, monday, priceLabel, weekNu
 import { defaultFavorites, exampleCollector, exampleMenus, restaurants, sources } from './examples'
 import { readLocal, writeLocal } from './storage'
 import { createMenuMatcher } from './matching'
-import { emptyScan, type ScanData } from './scan-data'
+import { emptyMenuMessage, emptyScan, menusForWeek, type ScanData } from './scan-data'
 
 const menuMatcher = createMenuMatcher()
 const demo = new URLSearchParams(location.search).get('demo') === '1'
@@ -75,22 +75,21 @@ export function App() {
   const [scanned, setScanned] = useState<Awaited<ReturnType<typeof exampleCollector.collect>>>([])
   const thisWeek = monday(currentDate())
   const week = addDays(thisWeek, weekOffset * 7)
-  const validMenus = scanData.menus.filter(({ menu, checkedAt }) => {
-    if (menu.week !== thisWeek || scanData.targetWeek !== thisWeek) return false
-    if (!isCached(menu.sourceId)) return true
-    const age = Date.now() - Date.parse(checkedAt)
-    return age >= 0 && age <= 48 * 3600000
-  })
+  const validMenus = menusForWeek(scanData, thisWeek)
   const matchesFor = (date: string) => demo
     ? matchMenus(scanned.some(menu => menu.week === date) ? scanned : exampleMenus(date), sources, restaurants, favorites, menuMatcher)
     : matchMenus(validMenus.map(item => item.menu).filter(menu => menu.week === date), scanData.sources, scanData.restaurants, favorites, menuMatcher)
-  const emptyText = demo ? 'Inga träffar i veckans exempelmenyer.'
-    : dataState === 'loading' ? 'Hämtar menydata…'
-    : dataState === 'failed' ? 'Menydata kunde inte hämtas.'
-    : 'Inga verifierade träffar för veckan.'
+
+  function emptyText(date: string) {
+    if (demo) return 'Inga träffar i veckans exempelmenyer.'
+    if (dataState === 'loading') return 'Hämtar menydata…'
+    if (dataState === 'failed') return 'Menydata kunde inte hämtas.'
+    return emptyMenuMessage(scanData, date, date === thisWeek && validMenus.length > 0)
+  }
 
   function isCached(sourceId: string) {
-    return scanData.results.some(result => result.restaurantId === sourceId && result.status === 'cached')
+    const source = scanData.sources.find(item => item.id === sourceId)
+    return scanData.results.some(result => result.restaurantId === source?.restaurantId && result.status === 'cached')
   }
 
   async function loadScan(signal?: AbortSignal) {
@@ -99,6 +98,8 @@ export function App() {
       const response = await fetch('./menydata.json', { cache: 'no-cache', signal })
       if (!response.ok) throw new Error()
       const data: ScanData = await response.json()
+      if (!data || !Array.isArray(data.menus) || !Array.isArray(data.results) ||
+        !Array.isArray(data.sources) || !Array.isArray(data.restaurants)) throw new Error()
       setScanData(data)
       setDataState('ready')
     } catch {
@@ -198,7 +199,7 @@ export function App() {
         <section className="results">
           <div className="section-heading"><h2>Aktuella träffar</h2><Badge /></div>
           <div className="cards">{matches.map(match => <DishRow key={match.dish.id} match={match} showDay cached={isCached(match.source.id)} onClick={() => setSelection(match)} />)}</div>
-          {matches.length === 0 && <p className="empty">{emptyText}</p>}
+          {matches.length === 0 && <p className="empty">{emptyText(thisWeek)}</p>}
         </section>
         <a className="week-link" href="#vecka" onClick={() => setWeekOffset(0)}>Visa hela veckan <ArrowRight size={17} /></a>
       </>}
@@ -216,7 +217,7 @@ export function App() {
           <div className="cards">{weekMatches.filter(match => match.dish.date === day).map(match =>
             <DishRow key={match.dish.id} match={match} cached={isCached(match.source.id)} onClick={() => setSelection(match)} />)}</div>
         </section>)}
-        {days.length === 0 && <p className="empty">{emptyText}</p>}
+        {days.length === 0 && <p className="empty">{emptyText(week)}</p>}
       </>}
 
       {tab === 'favoriter' && <>
@@ -239,7 +240,7 @@ export function App() {
           <div className="setting-row"><span className="dish-icon"><MapPin size={19} /></span><div><strong>Bevakningsområde</strong><p>Jönköping och Huskvarna</p></div></div>
           <div className="setting-row"><span className="dish-icon"><Bell size={19} /></span><div><strong>Pushnotiser</strong><p>Inte tillgängligt ännu</p></div><button className="switch" role="switch" aria-label="Pushnotiser" aria-checked={false} disabled><span /></button></div>
           <div className="setting-row"><span className="dish-icon"><Clock3 size={19} /></span><div><strong>Senaste menyskanning</strong><p>{(demo ? lastScan : scanData.attemptedAt) ? scanTime.format(new Date((demo ? lastScan : scanData.attemptedAt)!)) : 'Ingen skanning tillgänglig'}</p></div></div>
-          <div className="setting-row"><span className="dish-icon"><Store size={19} /></span><div><strong>Bevakade restauranger</strong><p>{demo ? restaurants.length + ' i exempeldata' : scanData.results.filter(item => item.status === 'live' && validMenus.some(({ menu }) => menu.sourceId === item.restaurantId)).length + ' framgångsrikt hämtade'}</p></div></div>
+          <div className="setting-row"><span className="dish-icon"><Store size={19} /></span><div><strong>Bevakade restauranger</strong><p>{demo ? restaurants.length + ' i exempeldata' : scanData.results.filter(item => item.status === 'live' && validMenus.some(({ menu }) => scanData.sources.some(source => source.id === menu.sourceId && source.restaurantId === item.restaurantId))).length + ' framgångsrikt hämtade'}</p></div></div>
         </div>
         <section className="scan-card"><div className="section-heading"><h2>Menyskanning</h2><Badge /></div>
           {demo ? <>

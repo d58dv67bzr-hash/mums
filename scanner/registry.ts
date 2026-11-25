@@ -13,6 +13,8 @@ export interface RegistryEntry {
   reviewAttempted: string | null
   review: { termsEvidence: string; robotsEvidence: string; automatedAccessAllowed: boolean } | null
   selector?: string
+  adapter?: 'aqua' | 'huskvarna-stadshotell'
+  leads?: { website?: string; historicalMenuUrl?: string; reportedAddress?: string; verified: false }
 }
 
 export const blockedHosts = ['lokallunch', 'tuggkoll']
